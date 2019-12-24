@@ -25,39 +25,40 @@ public class MQTTController {
     public MQTTController(Plugin plg_) {
         plugin = plg_;
     }
-    
+
     /**
      * MQTT publish 処理(デフォルトtopic)
+     * {server}/p/{plugin} 等
      * @param payload
      * @throws EcoMQTTManagerNotFoundException
      * @throws EcoMQTTPluginNotFoundException
      */
     public void publish(byte[] payload) throws EcoMQTTManagerNotFoundException, EcoMQTTPluginNotFoundException {
-        // EcoMQTT プラグインの取得とチェック
-        Plugin p = Bukkit.getPluginManager().getPlugin("EcoMQTT");
-        if (p == null) {
-            throw new EcoMQTTPluginNotFoundException();
-        }
-        EcoMQTT plg = (EcoMQTT) p;
-        
-        // マネージャクラスインスタンスの取得とチェック
-        MQTTManager m = (MQTTManager) plg.getPluginTimer("mqtt");
-        if (m == null) {
-            throw new EcoMQTTManagerNotFoundException();
-        }
-
-        // 登録関数呼び出し
-        m.sendPluginMQTT(plugin.getName(), payload);
+        publish(null, payload, false);
     }
 
     /**
-     * MQTT publish 処理(任意topic)
+     * MQTT publish 処理(プラグインprefix付き)
+     * {server}/p/{plugin}/topic 等
      * @param topic
      * @param payload
      * @throws EcoMQTTManagerNotFoundException
      * @throws EcoMQTTPluginNotFoundException
      */
     public void publish(String topic, byte[] payload) throws EcoMQTTManagerNotFoundException, EcoMQTTPluginNotFoundException {
+        publish(topic, payload, false);
+    }
+
+    /**
+     * MQTT publish 処理(プラグインprefix付き or 無し)
+     * +/p/{plugin}/topic 等
+     * @param topic
+     * @param payload
+     * @param raw
+     * @throws EcoMQTTManagerNotFoundException
+     * @throws EcoMQTTPluginNotFoundException
+     */
+    public void publish(String topic, byte[] payload, boolean raw) throws EcoMQTTManagerNotFoundException, EcoMQTTPluginNotFoundException {
         // EcoMQTT プラグインの取得とチェック
         Plugin p = Bukkit.getPluginManager().getPlugin("EcoMQTT");
         if (p == null) {
@@ -71,8 +72,12 @@ public class MQTTController {
             throw new EcoMQTTManagerNotFoundException();
         }
 
-        // 登録関数呼び出し
-        m.sendRawMQTT(topic, payload);
+        // publish要求送信
+        if (raw) {
+            m.sendRawMQTT(topic, payload);
+        } else {
+            m.sendPluginMQTT(plugin.getName(), topic, payload);;
+        }
     }
     
     /**

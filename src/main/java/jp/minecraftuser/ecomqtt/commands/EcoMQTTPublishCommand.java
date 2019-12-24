@@ -57,7 +57,7 @@ public class EcoMQTTPublishCommand extends CommandFrame {
                     rec = new EcoMQTTCommandController(plg, sender);
                     config.con.put(sender.getName(), rec);
                 }
-                rec.publish(cnv(conf.getString("Topic.Format.System.Cmd"), plg.toString()), args[0].getBytes());
+                rec.publish(cnv(conf.getString("Topic.Format.System.Cmd"), plg.toString()), args[0].getBytes(), true);
                 Utl.sendPluginMessage(plg, sender, "パブリッシュしました[" + args[0] + "]");
             } catch (Exception ex) {
                 Logger.getLogger(EcoMQTTPublishCommand.class.getName()).log(Level.SEVERE, null, ex);

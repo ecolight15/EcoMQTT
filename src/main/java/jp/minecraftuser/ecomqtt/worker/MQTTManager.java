@@ -156,16 +156,21 @@ public class MQTTManager extends AsyncProcessFrame {
     }
     
     /**
-     * 他プラグインからの依頼で送信するMQTTメッセージ
+     * 他プラグインからの依頼で送信するMQTTメッセージ(プラグインprefix付き)
      * メインスレッドで動作
      * @param plg
      * @param payload
      */
-    public void sendPluginMQTT(String plg, byte[] payload) {
-        String format = cnv(conf.getString("Topic.Format.Plugin"), plg);
-        sendRawMQTT(format, payload);
+    public void sendPluginMQTT(String plg, String topic_, byte[] payload) {
+        StringBuilder sb = new StringBuilder(cnv(conf.getString("Topic.Format.Plugin"), plg));
+        if (topic_ != null) {
+            sb.append("/");
+            sb.append(topic_);
+        }
+        String topic = sb.toString();
+        sendRawMQTT(topic, payload);
     }
-    
+
     /**
      * 指定トピック名で指定データを送る
      * メインスレッドで動作
