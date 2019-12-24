@@ -1,0 +1,25 @@
+name: EcoMQTT
+main: jp.minecraftuser.ecomqtt.EcoMQTT
+version: ${project.version}
+depend: [EcoFramework]
+commands:
+  pub:
+    description: EcoMQTT publish command
+    usage: /pub message
+    permission: ecomqtt.publish
+  sub:
+    description: EcoMQTT subscribe command
+    usage: /sub topic
+    permission: ecomqtt.subscribe
+  unsub:
+    description: EcoMQTT unsubscribe command
+    usage: /unsub topic
+    permission: ecomqtt.unsubscribe
+  ecm:
+    description: EcoMQTT commands
+    usage: /ecm
+    permission: ecomqtt
+  ecm reload:
+    description: reload config.yml
+    usage: /ecm reload
+    permission: ecomqtt.reload

@@ -1,0 +1,91 @@
+# ### general settings
+# # Maximum number per tick of received payloads transferred to main thread.
+# framework-sending-max: 50
+# # Transmission interval time of payload held by MQTT transmission thread.
+# framework-receive-interval: 1
+# # receive interval(tick) framework-sending-max(50) / mqttreceive-interval(5) = 10 topic/tick
+# mqtt-receive-interval: 5
+# ### topic settings
+# Topic:
+#   ServerName: "mcserver"
+#   Format:
+#     # Replace format
+#     # {server} : "Topic.ServerName" defined value.
+#     # {plugin} : The name of the plugin you requested to send. 
+#     System:
+#       Info: "{server}/s/info"
+#       Cmd: "{server}/s/cmd"
+#     Plugin: "{server}/p/{plugin}"
+# ### Log settings
+# Log:
+#   Publish:
+#     Enable: false
+#     File: publish.log
+#   Subscribe:
+#     Enable: false
+#     File: subscribe.log
+# ### MQTT settings
+# Mqtt:
+#   # ConnectionType => "ssl" or "tcp"
+#   Server:
+#     ConnectionType: "ssl"
+#     URL: "serverip:port"
+#     UserName: "name"
+#     Password: "pass"
+#   Publish:
+#     # QoS 0 : At most once (not guaranteed)
+#     # QoS 1 : At least once (may be duplicated)
+#     # QoS 2 : Exactly once (Always sent once)
+#     QoS: 2
+#     # If retain is "true", the last message is saved.
+#     retain: false
+#   Subscribe:
+#     QoS: 2
+#   SSL:
+#     # If TrustStore is empty, the client does not authenticate.
+#     TrustStore: ""
+#     TrustStorePassword: ""
+#     TrustStoreType: "JKS"
+#     KeyStore: ""
+#     KeyStorePassword: ""
+#     KeyStoreType: "JKS"
+
+framework-sending-max: 50
+framework-receive-interval: 1
+mqtt-receive-interval: 5
+Topic:
+  ServerName: "mcserver"
+  Format:
+    System:
+      Info: "{server}/s/info"
+      Cmd: "{server}/s/cmd"
+    Plugin: "{server}/p/{plugin}"
+Log:
+  Publish:
+    Console: true
+    File:
+      Enable: false
+      Path: publish.log
+  Subscribe:
+    Console: true
+    File:
+      Enable: false
+      Path: subscribe.log
+Mqtt:
+  Server:
+    ConnectionType: "ssl"
+    URL: "serverip:port"
+    UserName: "name"
+    Password: "pass"
+  Publish:
+    QoS: 2
+    retain: false
+  Subscribe:
+    QoS: 2
+  SSL:
+    TrustStore: ""
+    TrustStorePassword: ""
+    TrustStoreType: "JKS"
+    KeyStore: ""
+    KeyStorePassword: ""
+    KeyStoreType: "JKS"
