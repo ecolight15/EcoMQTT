@@ -2,7 +2,7 @@
 package jp.minecraftuser.ecomqtt.io.exception;
 
 /**
- * EcoMQTTプラグイン内のMQTTマネージャクラスが起動していない
+ * 指定のtopicとSubscribeレシーブハンドラの対は既に登録済み
  * @author ecolight
  */
 public class EcoMQTTAlreadyExistException extends EcoMQTTException {

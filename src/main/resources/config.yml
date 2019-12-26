@@ -78,10 +78,10 @@ Mqtt:
     UserName: "name"
     Password: "pass"
   Publish:
-    QoS: 2
+    QoS: 0
     retain: false
   Subscribe:
-    QoS: 2
+    QoS: 0
   SSL:
     TrustStore: ""
     TrustStorePassword: ""

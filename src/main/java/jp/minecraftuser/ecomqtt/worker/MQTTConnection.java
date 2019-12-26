@@ -30,8 +30,8 @@ public final class MQTTConnection implements MqttCallback {
     
     /**
      * コンストラクタ
-     * @param manager_
-     * @param conf_ 
+     * @param manager_ マネージャクラスインスタンス
+     * @param conf_ 設定情報
      */
     public MQTTConnection(MQTTManager manager_, EcoMQTTConfig conf_) {
         manager = manager_;
@@ -40,8 +40,8 @@ public final class MQTTConnection implements MqttCallback {
     
     /**
      * 接続処理
-     * @param conf
-     * @param force 
+     * @param conf 設定情報
+     * @param force 強制再起動指定(蓄積データごとクライアントを破棄する)
      */
     public void connect(EcoMQTTConfig conf, boolean force) {
         // 接続設定読み込み
@@ -118,12 +118,25 @@ public final class MQTTConnection implements MqttCallback {
     
     /**
      * メッセージ送信処理
-     * @param topic
-     * @param data 
+     * @param topic トピック名
+     * @param payload 送信電文
      */
-    public void publish(String topic, byte[] data) {
+    public void publish(String topic, byte[] payload) {
+        publish(topic, payload, null);
+    }
+    
+    /**
+     * メッセージ送信処理
+     * @param topic トピック名
+     * @param payload 送信電文
+     * @param qos QoS指定
+     */
+    public void publish(String topic, byte[] payload, Integer qos) {
         try {
-            client.publish(topic, data, pubQOS, retain);
+            if (qos == null) {
+                qos = pubQOS;
+            }
+            client.publish(topic, payload, qos, retain);
             abort = false;
         } catch (MqttException ex) {
             if (!abort) {
@@ -139,11 +152,23 @@ public final class MQTTConnection implements MqttCallback {
     
     /**
      * 購読登録処理
-     * @param topic 
+     * @param topic トピック名
      */
     public void subscribe(String topic) {
+        subscribe(topic, null);
+    }
+    
+    /**
+     * 購読登録処理
+     * @param topic トピック名
+     * @param qos QoS指定
+     */
+    public void subscribe(String topic, Integer qos) {
         try {
-            client.subscribe(topic, subQOS);
+            if (qos == null) {
+                qos = subQOS;
+            }
+            client.subscribe(topic, qos);
         } catch (MqttException ex) {
             LOG.log(Level.WARNING, "reason: {}", ex.getReasonCode());
             LOG.log(Level.WARNING, "message: {}", ex.getMessage());
@@ -151,15 +176,6 @@ public final class MQTTConnection implements MqttCallback {
             LOG.log(Level.WARNING, "cause: {}", ex.getCause());
             LOG.log(Level.WARNING, null, ex);
         }
-    }
-    
-    /**
-     * メッセージ送信処理
-     * @param topic
-     * @param message 
-     */
-    public void send(String topic, String message) {
-        publish(topic, message.getBytes());
     }
     
     /**
@@ -183,7 +199,7 @@ public final class MQTTConnection implements MqttCallback {
     
     /**
      * 接続状態を示す
-     * @return 
+     * @return 接続状態
      */
     public boolean isConnected() {
         boolean ret = (client != null);
@@ -195,7 +211,7 @@ public final class MQTTConnection implements MqttCallback {
     
     /**
      * ブローカーとの切断処理でのコールバック呼び出し
-     * @param thrwbl 
+     * @param thrwbl 多分Exception系のなにか
      */
     @Override
     public void connectionLost(Throwable thrwbl) {
@@ -203,8 +219,8 @@ public final class MQTTConnection implements MqttCallback {
         //isReady = false;
         
         // マネージャーになにかする
-        LOG.log(Level.INFO, "MQTT connection lost");
-        manager.receiveMQTT("topic", "connectionLost".getBytes());
+        manager.receiveMQTT(thrwbl);
+        //manager.receiveMQTT("topic", "connectionLost".getBytes());
     }
 
     /**
@@ -214,7 +230,7 @@ public final class MQTTConnection implements MqttCallback {
     @Override
     public void deliveryComplete(IMqttDeliveryToken imdt) {
         // パブリッシャ専用？
-        LOG.log(Level.INFO, "MQTT delivery complete.");
+        manager.receiveMQTT(imdt);
     }
 
     /**
@@ -225,7 +241,7 @@ public final class MQTTConnection implements MqttCallback {
      */
     @Override
     public void messageArrived(String topic, MqttMessage mm) throws Exception {
-        manager.receiveMQTT(topic, mm.getPayload());
+        manager.receiveMQTT(topic, mm);
     }
     
 }

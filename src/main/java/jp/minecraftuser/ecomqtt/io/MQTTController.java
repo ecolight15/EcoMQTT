@@ -20,7 +20,7 @@ public class MQTTController {
 
     /**
      * コンストラクタ
-     * @param plg_ 
+     * @param plg_ プラグインインスタンス
      */
     public MQTTController(Plugin plg_) {
         plugin = plg_;
@@ -29,7 +29,7 @@ public class MQTTController {
     /**
      * MQTT publish 処理(デフォルトtopic)
      * {server}/p/{plugin} 等
-     * @param payload
+     * @param payload 送信電文
      * @throws EcoMQTTManagerNotFoundException
      * @throws EcoMQTTPluginNotFoundException
      */
@@ -38,10 +38,22 @@ public class MQTTController {
     }
 
     /**
+     * MQTT publish 処理(デフォルトtopic)
+     * {server}/p/{plugin} 等
+     * @param payload 送信電文
+     * @param qos QoS指定
+     * @throws EcoMQTTManagerNotFoundException
+     * @throws EcoMQTTPluginNotFoundException
+     */
+    public void publish(byte[] payload, Integer qos) throws EcoMQTTManagerNotFoundException, EcoMQTTPluginNotFoundException {
+        publish(null, payload, false, qos);
+    }
+
+    /**
      * MQTT publish 処理(プラグインprefix付き)
      * {server}/p/{plugin}/topic 等
-     * @param topic
-     * @param payload
+     * @param topic 送信トピック指定
+     * @param payload 送信電文
      * @throws EcoMQTTManagerNotFoundException
      * @throws EcoMQTTPluginNotFoundException
      */
@@ -50,15 +62,42 @@ public class MQTTController {
     }
 
     /**
+     * MQTT publish 処理(プラグインprefix付き)
+     * {server}/p/{plugin}/topic 等
+     * @param topic 送信トピック指定
+     * @param payload 送信電文
+     * @param qos QoS指定
+     * @throws EcoMQTTManagerNotFoundException
+     * @throws EcoMQTTPluginNotFoundException
+     */
+    public void publish(String topic, byte[] payload, Integer qos) throws EcoMQTTManagerNotFoundException, EcoMQTTPluginNotFoundException {
+        publish(topic, payload, false, qos);
+    }
+
+    /**
      * MQTT publish 処理(プラグインprefix付き or 無し)
      * +/p/{plugin}/topic 等
-     * @param topic
-     * @param payload
-     * @param raw
+     * @param topic 送信トピック指定
+     * @param payload 送信電文
+     * @param raw topicのプラグインprefix解除指定
      * @throws EcoMQTTManagerNotFoundException
      * @throws EcoMQTTPluginNotFoundException
      */
     public void publish(String topic, byte[] payload, boolean raw) throws EcoMQTTManagerNotFoundException, EcoMQTTPluginNotFoundException {
+        publish(topic, payload, raw, null);
+    }
+    
+    /**
+     * MQTT publish 処理(プラグインprefix付き or 無し)
+     * +/p/{plugin}/topic 等
+     * @param topic 送信トピック指定
+     * @param payload 送信電文
+     * @param raw topicのプラグインprefix解除指定
+     * @param qos QoS指定
+     * @throws EcoMQTTManagerNotFoundException
+     * @throws EcoMQTTPluginNotFoundException
+     */
+    public void publish(String topic, byte[] payload, boolean raw, Integer qos) throws EcoMQTTManagerNotFoundException, EcoMQTTPluginNotFoundException {
         // EcoMQTT プラグインの取得とチェック
         Plugin p = Bukkit.getPluginManager().getPlugin("EcoMQTT");
         if (p == null) {
@@ -74,16 +113,16 @@ public class MQTTController {
 
         // publish要求送信
         if (raw) {
-            m.sendRawMQTT(topic, payload);
+            m.sendRawMQTT(topic, payload, qos);
         } else {
-            m.sendPluginMQTT(plugin.getName(), topic, payload);;
+            m.sendPluginMQTT(plugin.getName(), topic, payload, qos);
         }
     }
     
     /**
      * MQTTレシーバ登録処理(デフォルトtopic)
      * {server}/p/{plugin} 等
-     * @param receiver
+     * @param receiver レシーブハンドラ
      * @throws EcoMQTTPluginNotFoundException
      * @throws EcoMQTTManagerNotFoundException 
      * @throws EcoMQTTRegisterFailException 
@@ -93,10 +132,23 @@ public class MQTTController {
     }
 
     /**
+     * MQTTレシーバ登録処理(デフォルトtopic)
+     * {server}/p/{plugin} 等
+     * @param receiver レシーブハンドラ
+     * @param qos QoS指定
+     * @throws EcoMQTTPluginNotFoundException
+     * @throws EcoMQTTManagerNotFoundException 
+     * @throws EcoMQTTRegisterFailException 
+     */
+    public void registerReceiver(MQTTReceiver receiver, Integer qos) throws EcoMQTTPluginNotFoundException, EcoMQTTManagerNotFoundException, EcoMQTTRegisterFailException {
+        registerReceiver(null, receiver, false, qos);
+    }
+
+    /**
      * MQTTレシーバ登録処理(プラグインprefix付き)
      * {server}/p/{plugin}/topic 等
-     * @param topic
-     * @param receiver
+     * @param topic 受信トピック指定(基本的にMQTTのSubscribe指定と同等)
+     * @param receiver QoS指定
      * @throws EcoMQTTPluginNotFoundException
      * @throws EcoMQTTManagerNotFoundException 
      * @throws EcoMQTTRegisterFailException 
@@ -106,16 +158,45 @@ public class MQTTController {
     }
     
     /**
+     * MQTTレシーバ登録処理(プラグインprefix付き)
+     * {server}/p/{plugin}/topic 等
+     * @param topic 受信トピック指定(基本的にMQTTのSubscribe指定と同等)
+     * @param receiver レシーブハンドラ
+     * @param qos QoS指定
+     * @throws EcoMQTTPluginNotFoundException
+     * @throws EcoMQTTManagerNotFoundException 
+     * @throws EcoMQTTRegisterFailException 
+     */
+    public void registerReceiver(String topic, MQTTReceiver receiver, Integer qos) throws EcoMQTTPluginNotFoundException, EcoMQTTManagerNotFoundException, EcoMQTTRegisterFailException {
+        registerReceiver(topic, receiver, false, qos);
+    }
+    
+    /**
      * MQTTレシーバ登録処理(プラグインprefix付き or 無し)
      * +/p/{plugin}/topic 等
-     * @param topic
-     * @param receiver
-     * @param raw
+     * @param topic 受信トピック指定(基本的にMQTTのSubscribe指定と同等)
+     * @param receiver レシーブハンドラ
+     * @param raw topicのプラグインprefix解除指定
      * @throws EcoMQTTPluginNotFoundException
      * @throws EcoMQTTManagerNotFoundException 
      * @throws EcoMQTTRegisterFailException 
      */
     public void registerReceiver(String topic, MQTTReceiver receiver, boolean raw) throws EcoMQTTPluginNotFoundException, EcoMQTTManagerNotFoundException, EcoMQTTRegisterFailException {
+        registerReceiver(topic, receiver, raw, null);
+    }
+
+    /**
+     * MQTTレシーバ登録処理(プラグインprefix付き or 無し)
+     * +/p/{plugin}/topic 等
+     * @param topic 受信トピック指定(基本的にMQTTのSubscribe指定と同等)
+     * @param receiver レシーブハンドラ
+     * @param raw topicのプラグインprefix解除指定
+     * @param qos QoS指定
+     * @throws EcoMQTTPluginNotFoundException
+     * @throws EcoMQTTManagerNotFoundException 
+     * @throws EcoMQTTRegisterFailException 
+     */
+    public void registerReceiver(String topic, MQTTReceiver receiver, boolean raw, Integer qos) throws EcoMQTTPluginNotFoundException, EcoMQTTManagerNotFoundException, EcoMQTTRegisterFailException {
         // EcoMQTT プラグインの取得とチェック
         Plugin p = Bukkit.getPluginManager().getPlugin("EcoMQTT");
         if (p == null) {

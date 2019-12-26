@@ -5,7 +5,6 @@ import java.util.HashMap;
 import jp.minecraftuser.ecoframework.ConfigFrame;
 import jp.minecraftuser.ecoframework.PluginFrame;
 import jp.minecraftuser.ecomqtt.commands.EcoMQTTCommandController;
-import jp.minecraftuser.ecomqtt.io.MQTTController;
 
 /**
  * デフォルトコンフィグクラス
@@ -17,7 +16,7 @@ public class EcoMQTTConfig extends ConfigFrame{
 
     /**
      * コンストラクタ
-     * @param plg_ 
+     * @param plg_ プラグインフレームインスタンス
      */
     public EcoMQTTConfig(PluginFrame plg_) {
         super(plg_);

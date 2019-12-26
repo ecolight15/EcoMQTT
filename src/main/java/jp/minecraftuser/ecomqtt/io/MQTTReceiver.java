@@ -8,8 +8,8 @@ package jp.minecraftuser.ecomqtt.io;
 public abstract interface MQTTReceiver {
     /**
      * MQTT topic受信ハンドラ
-     * @param topic
-     * @param payload 
+     * @param topic 受信トピック
+     * @param payload 受信電文
      */
     public abstract void handler(String topic, byte[] payload);
 }

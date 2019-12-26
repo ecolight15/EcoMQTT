@@ -3,6 +3,7 @@ package jp.minecraftuser.ecomqtt.worker;
 
 import java.util.Map.Entry;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import jp.minecraftuser.ecoframework.async.*;
 import jp.minecraftuser.ecoframework.PluginFrame;
 import jp.minecraftuser.ecomqtt.config.EcoMQTTConfig;
@@ -13,6 +14,9 @@ import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 /**
  * MQTTマネージャークラス
@@ -81,12 +85,12 @@ public class MQTTManager extends AsyncProcessFrame {
             // MQTT 非同期送信
             if (payload.operation == MQTTPayload.Operation.PUBLISH) {
                 //log.info("publish MQTT topic[" + payload.topic + "] data[" + new String(payload.data) +"]");
-                con.publish(payload.topic, payload.data);
+                con.publish(payload.topic, payload.payload, payload.qos);
                 //log.info("publish MQTT complete.");
             }
             // MQTT 非同期受信登録
             if (payload.operation == MQTTPayload.Operation.SUBSCRIBE) {
-                con.subscribe(payload.topic);
+                con.subscribe(payload.topic, payload.qos);
             }
         }
         // 必要があればメインスレッド側に結果を返却することも可
@@ -159,34 +163,58 @@ public class MQTTManager extends AsyncProcessFrame {
      * 他プラグインからの依頼で送信するMQTTメッセージ(プラグインprefix付き)
      * メインスレッドで動作
      * @param plg
+     * @param topic_
      * @param payload
      */
     public void sendPluginMQTT(String plg, String topic_, byte[] payload) {
+        sendPluginMQTT(plg, topic_, payload, null);
+    }
+
+    /**
+     * 他プラグインからの依頼で送信するMQTTメッセージ(プラグインprefix付き)
+     * メインスレッドで動作
+     * @param plg
+     * @param topic_ トピック名
+     * @param payload 送信電文
+     * @param qos QoS指定
+     */
+    public void sendPluginMQTT(String plg, String topic_, byte[] payload, Integer qos) {
         StringBuilder sb = new StringBuilder(cnv(conf.getString("Topic.Format.Plugin"), plg));
         if (topic_ != null) {
             sb.append("/");
             sb.append(topic_);
         }
         String topic = sb.toString();
-        sendRawMQTT(topic, payload);
+        sendRawMQTT(topic, payload, qos);
     }
 
     /**
      * 指定トピック名で指定データを送る
      * メインスレッドで動作
-     * @param topic
-     * @param payload 
+     * @param topic トピック名
+     * @param payload 送信電文
      */
     public void sendRawMQTT(String topic, byte[] payload) {
-        MQTTPayload data = new MQTTPayload(plg, topic, payload);
+        sendRawMQTT(topic, payload, null);
+    }
+    
+    /**
+     * 指定トピック名で指定データを送る
+     * メインスレッドで動作
+     * @param topic トピック名
+     * @param payload 送信電文
+     * @param qos Qos指定
+     */
+    public void sendRawMQTT(String topic, byte[] payload, Integer qos) {
+        MQTTPayload data = new MQTTPayload(plg, topic, payload, qos);
         if ((conf.getBoolean("Log.Publish.File.Enable")) ||
             (conf.getBoolean("Log.Publish.Console"))) {
             StringBuilder s = new StringBuilder();
-            s.append("topic[");
+            s.append("type=Publish");
+            s.append(", topic=");
             s.append(data.topic);
-            s.append("] data[");
-            s.append(new String(data.data));
-            s.append("]");
+            s.append(", payload=");
+            s.append(new String(data.payload));
             if (conf.getBoolean("Log.Publish.Console")) {
                 log.info(s.toString());
             }
@@ -196,38 +224,82 @@ public class MQTTManager extends AsyncProcessFrame {
         }
         sendData(data); // To子スレッド executeProcess
     }
+
+    /**
+     * サブスクライブ登録
+     * メインスレッドで動作
+     * @param topic トピック名
+     */
+    public void subscribe(String topic) {
+        subscribe(topic, null);
+    }
     
     /**
      * サブスクライブ登録
      * メインスレッドで動作
-     * @param topic 
+     * @param topic トピック名
+     * @param qos QoS指定
      */
-    public void subscribe(String topic) {
-        MQTTPayload data = new MQTTPayload(plg, topic);
+    public void subscribe(String topic, Integer qos) {
+        MQTTPayload data = new MQTTPayload(plg, topic, qos);
         sendData(data); // To子スレッド executeProcess
     }
     
     /**
      * MQTT メッセージ受信処理(MQTTコールバックからの呼び出し)
      * MQTTクライアントで動作
-     * @param topic
-     * @param data 
+     * @param topic トピック名
+     * @param mm 受信電文
      */
-    public void receiveMQTT(String topic, byte[] data) {
-        MQTTPayload payload = new MQTTPayload(plg, topic, data);
-        receiveData(payload);
+    public void receiveMQTT(String topic, MqttMessage mm) {
+        MQTTPayload data = new MQTTPayload(plg, topic, mm);
+        receiveData(data);
+    }
+
+    /**
+     * MQTT メッセージ受信処理(MQTTコールバックからの呼び出し)
+     * MQTTクライアントで動作
+     * @param thrwbl 切断事由
+     */
+    public void receiveMQTT(Throwable thrwbl) {
+        MQTTPayload data = new MQTTPayload(plg, thrwbl);
+        receiveData(data);
+    }
+
+    /**
+     * MQTT メッセージ受信処理(MQTTコールバックからの呼び出し)
+     * MQTTクライアントで動作
+     * @param imdt 送信結果情報
+     */
+    public void receiveMQTT(IMqttDeliveryToken imdt) {
+        MQTTPayload data = new MQTTPayload(plg, imdt);
+        receiveData(data);
     }
 
     /**
      * レシーバを登録する(プラグインprefix付き)
      * topic指定があればプラグインprefixの後に /topic の形式で付与して登録する
      * メインスレッドで動作
-     * @param p
-     * @param topic_
-     * @param receiver 
+     * @param p プラグインインスタンス
+     * @param topic_ トピック名
+     * @param receiver レシーブハンドラ
      * @throws EcoMQTTAlreadyExistException 
      */
     public void registerReceiver(Plugin p, String topic_, MQTTReceiver receiver) throws EcoMQTTAlreadyExistException {
+        registerReceiver(p, topic_, receiver, null);
+    }
+    
+    /**
+     * レシーバを登録する(プラグインprefix付き)
+     * topic指定があればプラグインprefixの後に /topic の形式で付与して登録する
+     * メインスレッドで動作
+     * @param p プラグインインスタンス
+     * @param topic_ トピック名
+     * @param receiver レシーブハンドラ
+     * @param qos QoS指定
+     * @throws EcoMQTTAlreadyExistException 
+     */
+    public void registerReceiver(Plugin p, String topic_, MQTTReceiver receiver, Integer qos) throws EcoMQTTAlreadyExistException {
         StringBuilder sb = new StringBuilder(cnv(conf.getString("Topic.Format.Plugin"), p.getName()));
         if (topic_ != null) {
             sb.append("/");
@@ -240,7 +312,9 @@ public class MQTTManager extends AsyncProcessFrame {
             }
             // 既に登録されている同名のトピックがなければ登録する
             if (!receiverMap.containsKey(topic)) {
-                subscribe(topic);
+                // ToDo: QoS指定は最初にそのトピック名で登録するプラグインのQoSを採用している
+                //       プラグインごとに同名トピック受信設定でQoS変更する場合はクライアントから分ける必要あるか？
+                subscribe(topic, qos);
             }
             receiverMap.put(topic, receiver);
         }
@@ -249,11 +323,23 @@ public class MQTTManager extends AsyncProcessFrame {
     /**
      * レシーバを登録する(プラグインprefixなし)
      * メインスレッドで動作
-     * @param topic
-     * @param receiver 
+     * @param topic トピック名
+     * @param receiver レシーブハンドラ
      * @throws EcoMQTTAlreadyExistException 
      */
     public void registerReceiver(String topic, MQTTReceiver receiver) throws EcoMQTTAlreadyExistException {
+        registerReceiver(topic, receiver, null);
+    }
+    
+    /**
+     * レシーバを登録する(プラグインprefixなし)
+     * メインスレッドで動作
+     * @param topic トピック名
+     * @param receiver レシーブハンドラ
+     * @param qos QoS指定
+     * @throws EcoMQTTAlreadyExistException 
+     */
+    public void registerReceiver(String topic, MQTTReceiver receiver, Integer qos) throws EcoMQTTAlreadyExistException {
         if (topic == null) {
             topic = "#";
         }
@@ -263,7 +349,9 @@ public class MQTTManager extends AsyncProcessFrame {
             }
             // 既に登録されている同名のトピックがなければ登録する
             if (!receiverMap.containsKey(topic)) {
-                subscribe(topic);
+                // ToDo: QoS指定は最初にそのトピック名で登録するプラグインのQoSを採用している
+                //       プラグインごとに同名トピック受信設定でQoS変更する場合はクライアントから分ける必要あるか？
+                subscribe(topic, qos);
             }
             receiverMap.put(topic, receiver);
         }
@@ -272,9 +360,9 @@ public class MQTTManager extends AsyncProcessFrame {
     /**
      * レシーバを解除する(プラグインprefix付き)
      * メインスレッドで動作
-     * @param p
-     * @param topic_
-     * @param receiver 
+     * @param p プラグインスタンス
+     * @param topic_ トピック名
+     * @param receiver レシーブハンドラ
      * @throws EcoMQTTReceiverNotFoundException 
      */
     public void unregisterReceiver(Plugin p, String topic_, MQTTReceiver receiver) throws EcoMQTTReceiverNotFoundException {
@@ -295,8 +383,8 @@ public class MQTTManager extends AsyncProcessFrame {
     /**
      * レシーバを解除する(プラグインprefixなし)
      * メインスレッドで動作
-     * @param topic
-     * @param receiver 
+     * @param topic トピック名
+     * @param receiver レシーブハンドラ
      * @throws EcoMQTTReceiverNotFoundException 
      */
     public void unregisterReceiver(String topic, MQTTReceiver receiver) throws EcoMQTTReceiverNotFoundException {
@@ -324,28 +412,83 @@ public class MQTTManager extends AsyncProcessFrame {
         if ((conf.getBoolean("Log.Subscribe.File.Enable")) ||
             (conf.getBoolean("Log.Subscribe.Console"))){
             StringBuilder s = new StringBuilder();
-            s.append("topic[");
-            s.append(data.topic);
-            s.append("] data[");
-            s.append(new String(data.data));
-            s.append("]");
+            // メッセージ受診時処理
+            if (data.mm != null) {
+                s.append("type=Payload");
+                s.append(", topic=");
+                s.append(data.topic);
+                s.append(", id=");
+                s.append(data.mm.getId());
+                s.append(", QoS=");
+                s.append(data.mm.getQos());
+                s.append(", duplicate=");
+                s.append(data.mm.isDuplicate());
+                s.append(", retained=");
+                s.append(data.mm.isRetained());
+                s.append(", payload=");
+                s.append(new String(data.mm.getPayload()));
+                if (conf.getBoolean("Log.Subscribe.File.Enable")) {
+                    plg.getPluginLogger("subscribe").log(s);
+                }
+            }
+            // 切断時処理
+            if (data.thrwbl != null) {
+                s.append("type=connectionLost");
+                s.append(", message=");
+                s.append(data.thrwbl.getLocalizedMessage());
+                log.log(Level.WARNING, "MQTT connection lost:{0}", data.thrwbl.toString());
+                // 送受信ログ両方にログする
+                if (conf.getBoolean("Log.Subscribe.File.Enable")) {
+                    plg.getPluginLogger("subscribe").log(s);
+                }
+                if (conf.getBoolean("Log.Publish.File.Enable")) {
+                    plg.getPluginLogger("publish").log(s);
+                }
+            }
+            // 送信完了時処理
+            if (data.imdt != null) {
+                s.append("type=DeliveryToken");
+                s.append(", topic=");
+                for (String t : data.imdt.getTopics()) {
+                    s.append("[");
+                    s.append(t);
+                    s.append("]");
+                }
+                s.append(", id=");
+                s.append(data.imdt.getMessageId());
+                s.append(", SessionPresent=");
+                s.append(data.imdt.getSessionPresent());
+                s.append(", isComplete=");
+                s.append(data.imdt.isComplete());
+                try {
+                    String buf = data.imdt.getMessage().toString();
+                    s.append(", Message=");
+                    s.append(buf);
+                } catch (MqttException ex) {
+                    Logger.getLogger(MQTTManager.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                if (conf.getBoolean("Log.Publish.File.Enable")) {
+                    plg.getPluginLogger("publish").log(s);
+                }
+            }
+            
+            // ログ出力処理
             if (conf.getBoolean("Log.Subscribe.Console")) {
                 log.info(s.toString());
             }
-            if (conf.getBoolean("Log.Subscribe.File.Enable")) {
-                plg.getPluginLogger("subscribe").log(s);
-            }
         }
         // 他プラグイン向けの処理
-        synchronized(receiverMap) {
-            for (Entry<String, MQTTReceiver> e : receiverMap.entries()) {
-                StringBuilder s = new StringBuilder("\\Q");
-                // MQTTのtopic指定の +,# を正規表現のマッチングに展開
-                s.append(e.getKey().replace("/+/", "/\\E[^/]+\\Q/").replace("#", "\\E.+$\\Q"));
-                s.append("\\E");
-                //log.log(Level.SEVERE, "check handler topic[" + data.topic + "] match[" + s.toString() + "]");
-                if (data.topic.matches(s.toString())) {
-                    e.getValue().handler(data.topic, data.data);
+        if (data.mm != null) {
+            synchronized(receiverMap) {
+                for (Entry<String, MQTTReceiver> e : receiverMap.entries()) {
+                    StringBuilder s = new StringBuilder("\\Q");
+                    // MQTTのtopic指定の +,# を正規表現のマッチングに展開
+                    s.append(e.getKey().replace("/+/", "/\\E[^/]+\\Q/").replace("#", "\\E.+$\\Q"));
+                    s.append("\\E");
+                    //log.log(Level.SEVERE, "check handler topic[" + data.topic + "] match[" + s.toString() + "]");
+                    if (data.topic.matches(s.toString())) {
+                        e.getValue().handler(data.topic, data.mm.getPayload());
+                    }
                 }
             }
         }

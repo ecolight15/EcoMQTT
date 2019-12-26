@@ -2,7 +2,7 @@
 package jp.minecraftuser.ecomqtt.io.exception;
 
 /**
- * EcoMQTTプラグイン内のMQTTマネージャクラスが起動していない
+ * 解除指定したトピックとSubscribeレシーブハンドラの対は登録されていない
  * @author ecolight
  */
 public class EcoMQTTReceiverNotFoundException extends EcoMQTTException {

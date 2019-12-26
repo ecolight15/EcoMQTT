@@ -2,7 +2,7 @@
 package jp.minecraftuser.ecomqtt.io.exception;
 
 /**
- * EcoMQTTプラグイン関連のExceptionクラス
+ * Subscribeハンドラの登録または解除に失敗した
  * @author ecolight
  */
 public class EcoMQTTRegisterFailException extends Exception {
