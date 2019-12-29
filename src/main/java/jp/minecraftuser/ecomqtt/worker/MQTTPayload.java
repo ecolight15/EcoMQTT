@@ -1,6 +1,7 @@
 
 package jp.minecraftuser.ecomqtt.worker;
 
+import com.amazonaws.services.iot.client.AWSIotMessage;
 import jp.minecraftuser.ecoframework.async.*;
 import jp.minecraftuser.ecoframework.PluginFrame;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
@@ -19,6 +20,8 @@ public class MQTTPayload extends PayloadFrame {
     public MqttMessage mm;
     public Throwable thrwbl;
     public IMqttDeliveryToken imdt;
+    public AWSIotMessage message;
+    public MQTTAWSIotMessage ret;
 
     /**
      * コンストラクタ
@@ -100,9 +103,28 @@ public class MQTTPayload extends PayloadFrame {
      */
     public MQTTPayload(PluginFrame plg_, String topic_, MqttMessage mm_) {
         super(plg_);
-        operation = Operation.RELOAD;
         topic = topic_;
         mm = mm_;
+    }
+    
+    /**
+     * コンストラクタ
+     * @param plg_ プラグインインスタンス
+     * @param ret_ 送信結果
+     */
+    public MQTTPayload(PluginFrame plg_, MQTTAWSIotMessage ret_) {
+        super(plg_);
+        ret = ret_;
+    }
+    
+    /**
+     * コンストラクタ
+     * @param plg_ プラグインインスタンス
+     * @param message_ 受信電文
+     */
+    public MQTTPayload(PluginFrame plg_, AWSIotMessage message_) {
+        super(plg_);
+        message = message_;
     }
     
     /**

@@ -25,11 +25,26 @@
 #     Enable: false
 #     File: subscribe.log
 # ### MQTT settings
+# # type Aws / Other
+# MQTTType: Other
+# AWS:
+#   Server:
+#     URL: "xxxxxxxxx.iot.ap-xxxx.amazonaws.com:8883"
+#     CleanSession: true
+#   Security:
+#     CertificateFile: "xxxxxx-certificate.pem.crt"
+#     PrivateKeyFile: "xxxxxx-private.pem.key"
+#   Publish:
+#     # AWSQoS 0, 1
+#     QoS: 0
+#   Subscribe:
+#     QoS: 0
 # Mqtt:
 #   # ConnectionType => "ssl" or "tcp"
 #   Server:
 #     ConnectionType: "ssl"
 #     URL: "serverip:port"
+#     CleanSession: true
 #     UserName: "name"
 #     Password: "pass"
 #   Publish:
@@ -46,6 +61,7 @@
 #     TrustStore: ""
 #     TrustStorePassword: ""
 #     TrustStoreType: "JKS"
+#     ClientAuth: false
 #     KeyStore: ""
 #     KeyStorePassword: ""
 #     KeyStoreType: "JKS"
@@ -71,10 +87,24 @@ Log:
     File:
       Enable: false
       Path: subscribe.log
+MQTTType: Other
+AWS:
+  Server:
+    URL: "serverip:port"
+    CleanSession: true
+  Security:
+    RootCaFile: "path"
+    CertificateFile: "path"
+    PrivateKeyFile: "path"
+  Publish:
+    QoS: 0
+  Subscribe:
+    QoS: 0
 Mqtt:
   Server:
     ConnectionType: "ssl"
     URL: "serverip:port"
+    CleanSession: true
     UserName: "name"
     Password: "pass"
   Publish:
@@ -86,6 +116,7 @@ Mqtt:
     TrustStore: ""
     TrustStorePassword: ""
     TrustStoreType: "JKS"
+    ClientAuth: false
     KeyStore: ""
     KeyStorePassword: ""
     KeyStoreType: "JKS"

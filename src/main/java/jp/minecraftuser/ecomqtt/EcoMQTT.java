@@ -48,15 +48,28 @@ public class EcoMQTT  extends PluginFrame{
 
         // Mqtt manager interval timer
         conf.registerInt("mqtt-receive-interval");
-        
+
+        // MQTTServerType
+        conf.registerString("MQTTType");
+
+        // AWS settings
+        conf.registerString("AWS.Server.URL");
+        conf.registerBoolean("AWS.Server.CleanSession");
+        conf.registerString("AWS.Security.CertificateFile");
+        conf.registerString("AWS.Security.PrivateKeyFile");
+        conf.registerInt("AWS.Publish.QoS");
+        conf.registerInt("AWS.Subscribe.QoS");
+
         // Mqtt settings
         conf.registerString("Mqtt.Server.ConnectionType");
         conf.registerString("Mqtt.Server.URL");
+        conf.registerBoolean("Mqtt.Server.CleanSession");
         conf.registerString("Mqtt.Server.UserName");
         conf.registerString("Mqtt.Server.Password");
         conf.registerString("Mqtt.SSL.TrustStore");
         conf.registerString("Mqtt.SSL.TrustStorePassword");
         conf.registerString("Mqtt.SSL.TrustStoreType");
+        conf.registerBoolean("Mqtt.SSL.ClientAuth");
         conf.registerString("Mqtt.SSL.KeyStore");
         conf.registerString("Mqtt.SSL.KeyStorePassword");
         conf.registerString("Mqtt.SSL.KeyStoreType");

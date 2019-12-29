@@ -19,7 +19,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
  * MQTT 接続クラス
  * @author ecolight
  */
-public final class MQTTConnection implements MqttCallback {
+public final class MQTTConnection implements MqttCallback, MQTTConnectionFrame {
     private final MQTTManager manager;
     private static final Logger LOG = Logger.getLogger(MQTTConnection.class.getName());
     private boolean abort = false;
@@ -38,11 +38,12 @@ public final class MQTTConnection implements MqttCallback {
         connect(conf_, true);
     }
     
-    /**
+     /**
      * 接続処理
      * @param conf 設定情報
      * @param force 強制再起動指定(蓄積データごとクライアントを破棄する)
      */
+    @Override
     public void connect(EcoMQTTConfig conf, boolean force) {
         // 接続設定読み込み
         String type = conf.getString("Mqtt.Server.ConnectionType");
@@ -67,7 +68,7 @@ public final class MQTTConnection implements MqttCallback {
                 String url = conf.getString("Mqtt.Server.URL");
                 String clid = UUID.randomUUID().toString(); // Todo:接続ごとに異なる好きな名前が振れる様なのでそのうち仕様検討する
                 LOG.log(Level.INFO, "create MQTT client [{0}] cliendId[{1}]", new Object[]{url, clid});
-                client = new MqttClient((type.equalsIgnoreCase("ssl") ? "ssl://" : "tcp://") + url, clid, new MemoryPersistence());
+                client = new MqttClient(type + "://" + url, clid, new MemoryPersistence());
             }
             LOG.log(Level.INFO, "start MQTT connection");
             MqttConnectOptions conOpt = new MqttConnectOptions();
@@ -82,12 +83,12 @@ public final class MQTTConnection implements MqttCallback {
             conOpt.setAutomaticReconnect(true);
             
             // SSL設定
-            if (type.equalsIgnoreCase("ssl") && sslTrustStore.length() != 0) {
+            if (((type.equalsIgnoreCase("ssl")) || (type.equalsIgnoreCase("https"))) && sslTrustStore.length() != 0) {
                 Properties sslProp = new Properties();
                 sslProp.put(SSLSocketFactoryFactory.TRUSTSTORE, sslTrustStore);
                 sslProp.put(SSLSocketFactoryFactory.TRUSTSTOREPWD, conf.getString("Mqtt.SSL.TrustStorePassword"));
                 sslProp.put(SSLSocketFactoryFactory.TRUSTSTORETYPE, conf.getString("Mqtt.SSL.TrustStoreType"));
-                sslProp.put(SSLSocketFactoryFactory.CLIENTAUTH, false);
+                sslProp.put(SSLSocketFactoryFactory.CLIENTAUTH, conf.getBoolean("Mqtt.SSL.ClientAuth"));
                 String sslKeyStore = conf.getString("Mqtt.SSL.KeyStore");
                 if (sslKeyStore.length() != 0) {
                     sslProp.put(SSLSocketFactoryFactory.KEYSTORE, sslKeyStore);
@@ -101,26 +102,27 @@ public final class MQTTConnection implements MqttCallback {
             client.setCallback(this);
             
             // 接続
-            conOpt.setCleanSession(true);
+            conOpt.setCleanSession(conf.getBoolean("Mqtt.Server.CleanSession"));
             client.connect(conOpt);
             LOG.log(Level.INFO, "MQTT server connected.");
         } catch (MqttException ex) {
             if (!abort) {
-                LOG.log(Level.WARNING, "reason: {}", ex.getReasonCode());
-                LOG.log(Level.WARNING, "message: {}", ex.getMessage());
-                LOG.log(Level.WARNING, "localize: {}", ex.getLocalizedMessage());
-                LOG.log(Level.WARNING, "cause: {}", ex.getCause());
+                LOG.log(Level.WARNING, "reason: {0}", ex.getReasonCode());
+                LOG.log(Level.WARNING, "message: {0}", ex.getMessage());
+                LOG.log(Level.WARNING, "localize: {0}", ex.getLocalizedMessage());
+                LOG.log(Level.WARNING, "cause: {0}", ex.getCause());
                 LOG.log(Level.WARNING, null, ex);
             }
             abort = true;
         }
     }
-    
+
     /**
      * メッセージ送信処理
      * @param topic トピック名
      * @param payload 送信電文
      */
+    @Override
     public void publish(String topic, byte[] payload) {
         publish(topic, payload, null);
     }
@@ -131,6 +133,7 @@ public final class MQTTConnection implements MqttCallback {
      * @param payload 送信電文
      * @param qos QoS指定
      */
+    @Override
     public void publish(String topic, byte[] payload, Integer qos) {
         try {
             if (qos == null) {
@@ -140,10 +143,10 @@ public final class MQTTConnection implements MqttCallback {
             abort = false;
         } catch (MqttException ex) {
             if (!abort) {
-                LOG.log(Level.WARNING, "reason: {}", ex.getReasonCode());
-                LOG.log(Level.WARNING, "message: {}", ex.getMessage());
-                LOG.log(Level.WARNING, "localize: {}", ex.getLocalizedMessage());
-                LOG.log(Level.WARNING, "cause: {}", ex.getCause());
+                LOG.log(Level.WARNING, "reason: {0}", ex.getReasonCode());
+                LOG.log(Level.WARNING, "message: {0}", ex.getMessage());
+                LOG.log(Level.WARNING, "localize: {0}", ex.getLocalizedMessage());
+                LOG.log(Level.WARNING, "cause: {0}", ex.getCause());
                 LOG.log(Level.WARNING, null, ex);
             }
             abort = true;
@@ -154,6 +157,7 @@ public final class MQTTConnection implements MqttCallback {
      * 購読登録処理
      * @param topic トピック名
      */
+    @Override
     public void subscribe(String topic) {
         subscribe(topic, null);
     }
@@ -163,6 +167,7 @@ public final class MQTTConnection implements MqttCallback {
      * @param topic トピック名
      * @param qos QoS指定
      */
+    @Override
     public void subscribe(String topic, Integer qos) {
         try {
             if (qos == null) {
@@ -181,6 +186,7 @@ public final class MQTTConnection implements MqttCallback {
     /**
      * 切断処理 ※disconnectは最大30秒程度待機する場合がある
      */
+    @Override
     public void disconnect() {
         if (client != null && client.isConnected()) {
             try {
@@ -201,6 +207,7 @@ public final class MQTTConnection implements MqttCallback {
      * 接続状態を示す
      * @return 接続状態
      */
+    @Override
     public boolean isConnected() {
         boolean ret = (client != null);
         if (ret) {

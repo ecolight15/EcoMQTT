@@ -7,7 +7,7 @@ import jp.minecraftuser.ecoframework.Utl;
 import org.bukkit.command.CommandSender;
 
 /**
- * リロードコマンドクラス
+ * EcoMQTTコマンドクラス
  * @author ecolight
  */
 public class EcoMQTTCommand extends CommandFrame {

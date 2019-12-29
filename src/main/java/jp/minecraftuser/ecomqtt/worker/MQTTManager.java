@@ -1,6 +1,8 @@
 
 package jp.minecraftuser.ecomqtt.worker;
 
+import com.amazonaws.services.iot.client.AWSIotDeviceErrorCode;
+import com.amazonaws.services.iot.client.AWSIotMessage;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -25,7 +27,7 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 public class MQTTManager extends AsyncProcessFrame {
     static private EcoMQTTConfig efconf;
     final private MultiValuedMap<String, MQTTReceiver> receiverMap = new ArrayListValuedHashMap();
-    final private MQTTConnection con;
+    final private MQTTConnectionFrame con;
     
     /**
      * 親スレッド用コンストラクタ
@@ -50,7 +52,11 @@ public class MQTTManager extends AsyncProcessFrame {
         super(plg_, name_, frame_);
         efconf = (EcoMQTTConfig) plg.getDefaultConfig();
         // MQTT 接続処理
-        con = new MQTTConnection(this, efconf);
+        if (conf.getString("MQTTType").equalsIgnoreCase("aws")) {
+            con = new MQTTConnectionAWS(this, efconf);
+        } else {
+            con = new MQTTConnection(this, efconf);
+        }
     }
 
     /**
@@ -259,10 +265,30 @@ public class MQTTManager extends AsyncProcessFrame {
     /**
      * MQTT メッセージ受信処理(MQTTコールバックからの呼び出し)
      * MQTTクライアントで動作
+     * @param message 受信電文
+     */
+    public void receiveMQTT(AWSIotMessage message) {
+        MQTTPayload data = new MQTTPayload(plg, message);
+        receiveData(data);
+    }
+
+    /**
+     * MQTT メッセージ受信処理(MQTTコールバックからの呼び出し)
+     * MQTTクライアントで動作
      * @param thrwbl 切断事由
      */
     public void receiveMQTT(Throwable thrwbl) {
         MQTTPayload data = new MQTTPayload(plg, thrwbl);
+        receiveData(data);
+    }
+
+    /**
+     * MQTT メッセージ送信結果処理(AWSコールバックからの呼び出し)
+     * MQTTクライアントで動作
+     * @param ret 送信結果
+     */
+    public void receiveMQTT(MQTTAWSIotMessage ret) {
+        MQTTPayload data = new MQTTPayload(plg, ret);
         receiveData(data);
     }
 
@@ -412,7 +438,7 @@ public class MQTTManager extends AsyncProcessFrame {
         if ((conf.getBoolean("Log.Subscribe.File.Enable")) ||
             (conf.getBoolean("Log.Subscribe.Console"))){
             StringBuilder s = new StringBuilder();
-            // メッセージ受診時処理
+            // メッセージ受診時処理(Other type MQTT server)
             if (data.mm != null) {
                 s.append("type=Payload");
                 s.append(", topic=");
@@ -427,8 +453,62 @@ public class MQTTManager extends AsyncProcessFrame {
                 s.append(data.mm.isRetained());
                 s.append(", payload=");
                 s.append(new String(data.mm.getPayload()));
+                // ログ出力処理
                 if (conf.getBoolean("Log.Subscribe.File.Enable")) {
                     plg.getPluginLogger("subscribe").log(s);
+                }
+                if (conf.getBoolean("Log.Subscribe.Console")) {
+                    log.info(s.toString());
+                }
+                // 他プラグイン向けの処理
+                synchronized(receiverMap) {
+                    for (Entry<String, MQTTReceiver> e : receiverMap.entries()) {
+                        StringBuilder sb = new StringBuilder("\\Q");
+                        // MQTTのtopic指定の +,# を正規表現のマッチングに展開
+                        sb.append(e.getKey().replace("/+/", "/\\E[^/]+\\Q/").replace("#", "\\E.+$\\Q"));
+                        sb.append("\\E");
+                        //log.log(Level.SEVERE, "check handler topic[" + data.topic + "] match[" + s.toString() + "]");
+                        if (data.topic.matches(sb.toString())) {
+                            e.getValue().handler(data.topic, data.mm.getPayload());
+                        }
+                    }
+                }
+            }
+            // メッセージ受診時処理(AWS MQTT server)
+            if (data.message != null) {
+                s.append("type=AWSIotTopicPayload");
+                s.append(", topic=");
+                s.append(data.message.getTopic());
+                AWSIotDeviceErrorCode err = data.message.getErrorCode();
+                if (err != null) {
+                    s.append(", error=");
+                    s.append(err.toString());
+                    s.append(", errMessage=");
+                    s.append(data.message.getErrorMessage());
+                }
+                s.append(", QoS=");
+                s.append(data.message.getQos());
+                s.append(", payload=");
+                s.append(new String(data.message.getPayload()));
+                // ログ出力処理
+                if (conf.getBoolean("Log.Subscribe.File.Enable")) {
+                    plg.getPluginLogger("subscribe").log(s);
+                }
+                if (conf.getBoolean("Log.Subscribe.Console")) {
+                    log.info(s.toString());
+                }
+                // 他プラグイン向けの処理
+                synchronized(receiverMap) {
+                    for (Entry<String, MQTTReceiver> e : receiverMap.entries()) {
+                        StringBuilder sb = new StringBuilder("\\Q");
+                        // MQTTのtopic指定の +,# を正規表現のマッチングに展開
+                        sb.append(e.getKey().replace("/+/", "/\\E[^/]+\\Q/").replace("#", "\\E.+$\\Q"));
+                        sb.append("\\E");
+                        //log.log(Level.SEVERE, "check handler topic[" + data.topic + "] match[" + s.toString() + "]");
+                        if (data.message.getTopic().matches(sb.toString())) {
+                            e.getValue().handler(data.message.getTopic(), data.message.getPayload());
+                        }
+                    }
                 }
             }
             // 切断時処理
@@ -444,8 +524,12 @@ public class MQTTManager extends AsyncProcessFrame {
                 if (conf.getBoolean("Log.Publish.File.Enable")) {
                     plg.getPluginLogger("publish").log(s);
                 }
+                if ((conf.getBoolean("Log.Subscribe.Console")) ||
+                    (conf.getBoolean("Log.Publish.Console"))) {
+                    log.info(s.toString());
+                }
             }
-            // 送信完了時処理
+            // 送信完了時処理(Other type MQTT server)
             if (data.imdt != null) {
                 s.append("type=DeliveryToken");
                 s.append(", topic=");
@@ -467,28 +551,36 @@ public class MQTTManager extends AsyncProcessFrame {
                 } catch (MqttException ex) {
                     Logger.getLogger(MQTTManager.class.getName()).log(Level.SEVERE, null, ex);
                 }
+                // ログ出力処理
                 if (conf.getBoolean("Log.Publish.File.Enable")) {
                     plg.getPluginLogger("publish").log(s);
                 }
+                if (conf.getBoolean("Log.Publish.Console")) {
+                    log.info(s.toString());
+                }
             }
-            
-            // ログ出力処理
-            if (conf.getBoolean("Log.Subscribe.Console")) {
-                log.info(s.toString());
-            }
-        }
-        // 他プラグイン向けの処理
-        if (data.mm != null) {
-            synchronized(receiverMap) {
-                for (Entry<String, MQTTReceiver> e : receiverMap.entries()) {
-                    StringBuilder s = new StringBuilder("\\Q");
-                    // MQTTのtopic指定の +,# を正規表現のマッチングに展開
-                    s.append(e.getKey().replace("/+/", "/\\E[^/]+\\Q/").replace("#", "\\E.+$\\Q"));
-                    s.append("\\E");
-                    //log.log(Level.SEVERE, "check handler topic[" + data.topic + "] match[" + s.toString() + "]");
-                    if (data.topic.matches(s.toString())) {
-                        e.getValue().handler(data.topic, data.mm.getPayload());
-                    }
+            // 送信結果処理(AWS MQTT server)
+            if (data.ret != null) {
+                s.append("type=AWSIoTMessage");
+                s.append(", ret=");
+                s.append(data.ret.ret.toString());
+                s.append(", topic=");
+                s.append(data.ret.getTopic());
+                AWSIotDeviceErrorCode err = data.ret.getErrorCode();
+                if (err != null) {
+                    s.append(", errCode=");
+                    s.append(err.toString());
+                    s.append(", errMessage=");
+                    s.append(data.ret.getErrorMessage());
+                }
+                s.append(", Message=");
+                s.append(new String(data.ret.getPayload()));
+                // ログ出力処理
+                if (conf.getBoolean("Log.Publish.File.Enable")) {
+                    plg.getPluginLogger("publish").log(s);
+                }
+                if (conf.getBoolean("Log.Publish.Console")) {
+                    log.info(s.toString());
                 }
             }
         }
