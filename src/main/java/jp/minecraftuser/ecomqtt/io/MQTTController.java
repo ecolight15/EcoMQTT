@@ -16,14 +16,14 @@ import org.bukkit.plugin.Plugin;
  * @author ecolight
  */
 public class MQTTController {
-    private final Plugin plugin;
+    private final Plugin plg;
 
     /**
      * コンストラクタ
      * @param plg_ プラグインインスタンス
      */
     public MQTTController(Plugin plg_) {
-        plugin = plg_;
+        plg = plg_;
     }
 
     /**
@@ -115,7 +115,7 @@ public class MQTTController {
         if (raw) {
             m.sendRawMQTT(topic, payload, qos);
         } else {
-            m.sendPluginMQTT(plugin.getName(), topic, payload, qos);
+            m.sendPluginMQTT(this.plg.getName(), topic, payload, qos);
         }
     }
     
@@ -215,7 +215,7 @@ public class MQTTController {
             if (raw) {
                 m.registerReceiver(topic, receiver);
             } else {
-                m.registerReceiver(plugin, topic, receiver);
+                m.registerReceiver(this.plg, topic, receiver);
             }
         } catch (EcoMQTTAlreadyExistException ex) {
             throw new EcoMQTTRegisterFailException(ex);
@@ -276,7 +276,7 @@ public class MQTTController {
             if (raw) {
                 m.unregisterReceiver(topic, receiver);
             } else {
-                m.unregisterReceiver(plugin, topic, receiver);
+                m.unregisterReceiver(this.plg, topic, receiver);
             }
         } catch (EcoMQTTReceiverNotFoundException ex) {
             throw new EcoMQTTRegisterFailException(ex);

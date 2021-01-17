@@ -44,7 +44,7 @@ public class EcoMQTTReloadCommand extends CommandFrame {
         if (!checkRange(sender, args, 0, 0)) return true;
 
         // リロード
-        conf.reload();
+        plg.reload();
         Utl.sendPluginMessage(plg, sender, "設定ファイルを再読み込みしました");
         return true;
     }
