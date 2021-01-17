@@ -16,7 +16,7 @@ import org.bukkit.plugin.Plugin;
  * @author ecolight
  */
 public class MQTTController {
-    private final Plugin plg;
+    protected final Plugin plg;
 
     /**
      * コンストラクタ
