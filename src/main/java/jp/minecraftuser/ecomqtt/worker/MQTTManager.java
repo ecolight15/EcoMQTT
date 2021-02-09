@@ -145,6 +145,22 @@ public class MQTTManager extends AsyncProcessFrame {
     }
     
     /**
+     * Topicのフォーマット変換
+     * @param src
+     * @param plg
+     * @param singleWildcard
+     * @return 
+     */
+    static public String cnv(String src, String plg, String singleWildcard) {
+        src = src.replace(singleWildcard, "+");
+        src = src.replace("{server}", efconf.getString("Topic.ServerName"));
+        if (plg != null) {
+            src = src.replace("{plugin}", plg);
+        }
+        return src;
+    }
+    
+    /**
      * このプラグインが主体で送信するMQTTメッセージ
      * メインスレッドで動作
      * @param payload
