@@ -41,7 +41,7 @@
             <groupId>org.eclipse.paho</groupId>
             <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
             <!-- URLスキーマの問題への暫定対応として1.2.0を使用する: https://github.com/eclipse/paho.mqtt.java/issues/572 -->
-            <version>1.2.0</version>
+            <version>1.2.1</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
