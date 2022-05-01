@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>jp.minecraftuser</groupId>
     <artifactId>EcoMQTT</artifactId>
-    <version>0.7</version>
+    <version>0.8</version>
     <packaging>jar</packaging>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -41,7 +41,8 @@
             <groupId>org.eclipse.paho</groupId>
             <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
             <!-- URLスキーマの問題への暫定対応として1.2.0を使用する: https://github.com/eclipse/paho.mqtt.java/issues/572 -->
-            <version>1.2.0</version>
+            <!-- 最新版でAWSつながるのでとりあえず1.2.5まで上げておく -->
+            <version>1.2.5</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

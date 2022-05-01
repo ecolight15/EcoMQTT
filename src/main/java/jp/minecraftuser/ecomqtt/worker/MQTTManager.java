@@ -518,9 +518,9 @@ public class MQTTManager extends AsyncProcessFrame {
                     for (Entry<String, MQTTReceiver> e : receiverMap.entries()) {
                         StringBuilder sb = new StringBuilder("\\Q");
                         // MQTTのtopic指定の +,# を正規表現のマッチングに展開
-                        sb.append(e.getKey().replace("/+/", "/\\E[^/]+\\Q/").replace("#", "\\E.+$\\Q"));
+                        sb.append(e.getKey().replace("+", "\\E[a-zA-Z0-9]+\\Q").replace("#", "\\E.+$\\Q"));
                         sb.append("\\E");
-                        //log.log(Level.SEVERE, "check handler topic[" + data.topic + "] match[" + s.toString() + "]");
+                        log.log(Level.INFO, "check handler topic[" + data.message.getTopic() + "] match[" + sb.toString() + "]");
                         if (data.message.getTopic().matches(sb.toString())) {
                             e.getValue().handler(data.message.getTopic(), data.message.getPayload());
                         }
