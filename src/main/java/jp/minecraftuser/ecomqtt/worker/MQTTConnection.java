@@ -6,6 +6,7 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jp.minecraftuser.ecomqtt.config.EcoMQTTConfig;
+import org.bukkit.Bukkit;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -21,7 +22,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
  */
 public final class MQTTConnection implements MqttCallback, MQTTConnectionFrame {
     private final MQTTManager manager;
-    private static final Logger LOG = Logger.getLogger(MQTTConnection.class.getName());
+    private static final Logger LOG = Bukkit.getLogger();
     private boolean abort = false;
     private MqttClient client;
     private int pubQOS = 0;

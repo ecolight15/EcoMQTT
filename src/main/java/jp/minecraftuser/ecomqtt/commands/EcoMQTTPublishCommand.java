@@ -8,6 +8,7 @@ import jp.minecraftuser.ecoframework.CommandFrame;
 import jp.minecraftuser.ecoframework.Utl;
 import jp.minecraftuser.ecomqtt.config.EcoMQTTConfig;
 import static jp.minecraftuser.ecomqtt.worker.MQTTManager.cnv;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 
 /**
@@ -60,7 +61,7 @@ public class EcoMQTTPublishCommand extends CommandFrame {
                 rec.publish(cnv(conf.getString("Topic.Format.System.Cmd"), plg.toString()), args[0].getBytes(), true);
                 Utl.sendPluginMessage(plg, sender, "パブリッシュしました[" + args[0] + "]");
             } catch (Exception ex) {
-                Logger.getLogger(EcoMQTTPublishCommand.class.getName()).log(Level.SEVERE, null, ex);
+                Bukkit.getLogger().log(Level.SEVERE, null, ex);
                 Utl.sendPluginMessage(plg, sender, "パブリッシュに失敗しました:" + ex.getLocalizedMessage());
             }
         } else {

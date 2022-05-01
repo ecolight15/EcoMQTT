@@ -12,6 +12,7 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jp.minecraftuser.ecomqtt.config.EcoMQTTConfig;
+import org.bukkit.Bukkit;
 
 /**
  * MQTT 接続クラス
@@ -19,7 +20,7 @@ import jp.minecraftuser.ecomqtt.config.EcoMQTTConfig;
  */
 public final class MQTTConnectionAWS implements MQTTConnectionFrame {
     private final MQTTManager manager;
-    private static final Logger LOG = Logger.getLogger(MQTTConnectionAWS.class.getName());
+    private static final Logger LOG = Bukkit.getLogger();
     private boolean abort = false;
     private AWSIotMqttClient client;
     private int pubQOS = 0;

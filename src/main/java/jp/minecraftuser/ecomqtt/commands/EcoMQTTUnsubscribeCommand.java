@@ -7,6 +7,7 @@ import jp.minecraftuser.ecoframework.PluginFrame;
 import jp.minecraftuser.ecoframework.CommandFrame;
 import jp.minecraftuser.ecoframework.Utl;
 import jp.minecraftuser.ecomqtt.config.EcoMQTTConfig;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 
 /**
@@ -58,7 +59,7 @@ public class EcoMQTTUnsubscribeCommand extends CommandFrame {
                 rec.unregisterReceiver(args[0], rec, true);
                 Utl.sendPluginMessage(plg, sender, "サブスクライブ解除しました[" + args[0] + "]");
             } catch (Exception ex) {
-                Logger.getLogger(EcoMQTTUnsubscribeCommand.class.getName()).log(Level.SEVERE, null, ex);
+                Bukkit.getLogger().log(Level.SEVERE, null, ex);
                 Utl.sendPluginMessage(plg, sender, "サブスクライブ解除に失敗しました:" + ex.getLocalizedMessage());
             }
         } else {

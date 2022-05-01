@@ -14,6 +14,7 @@ import jp.minecraftuser.ecomqtt.io.exception.EcoMQTTAlreadyExistException;
 import jp.minecraftuser.ecomqtt.io.exception.EcoMQTTReceiverNotFoundException;
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
@@ -565,7 +566,7 @@ public class MQTTManager extends AsyncProcessFrame {
                     s.append(", Message=");
                     s.append(buf);
                 } catch (MqttException ex) {
-                    Logger.getLogger(MQTTManager.class.getName()).log(Level.SEVERE, null, ex);
+                    Bukkit.getLogger().log(Level.SEVERE, null, ex);
                 }
                 // ログ出力処理
                 if (conf.getBoolean("Log.Publish.File.Enable")) {
