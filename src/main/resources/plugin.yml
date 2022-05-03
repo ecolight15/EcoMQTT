@@ -1,6 +1,7 @@
 name: EcoMQTT
 main: jp.minecraftuser.ecomqtt.EcoMQTT
 version: ${project.version}
+api-version: 1.18
 depend: [EcoFramework]
 commands:
   pub:
